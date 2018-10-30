@@ -1,43 +1,106 @@
-# RackUtm
+Rack::UTM
+================
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/rack_utm`. To experiment with that code, run `bin/console` for an interactive prompt.
+Rack::UTM is a rack middleware that extracts information about the utm tracking codes.
 
-TODO: Delete this and the text above, and describe your gem
+Common Scenario
+---------------
 
-## Installation
+UTM links tracking is very common task if you want to promote your online business. This middleware helps you to do that.
 
-Add this line to your application's Gemfile:
+1. Use UTM Link to promote your business like <code>http://yoursite.org?utm_source=ABC123....</code>.
+2. A user clicks through the link and lands on your site.
+3. Rack::Utm middleware finds <code>utm_*</code> parameters in the request, extracts them and saves it in a cookie
+4. User signs up (now or later) and you know the utm params the user has assigned
+5. PROFIT!
 
-```ruby
-gem 'rack_utm'
-```
+Installation
+------------
 
-And then execute:
+Piece a cake:
 
-    $ bundle
+    gem install rack_utm
 
-Or install it yourself as:
 
-    $ gem install rack_utm
+Rails 3+ Example Usage
+---------------------
 
-## Usage
+Add the middleware to your application stack:
 
-TODO: Write usage instructions here
+    # Rails 3 App - in config/application.rb
+    class Application < Rails::Application
+      ...
+      config.middleware.use Rack::Utm
+      ...
+    end
 
-## Development
+    # Rails 2 App - in config/environment.rb
+    Rails::Initializer.run do |config|
+      ...
+      config.middleware.use "Rack::Utm"
+      ...
+    end
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+Now you can check any request to see who came to your site via an affiliated link and use this information in your application. Affiliate tag is saved in the cookie and will come into play if user returns to your site later.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+    class ExampleController < ApplicationController
+      def index
+        str = if request.env['utm_source']
+          "Hallo, user! You've been referred here by #{request.env['utm_source']}, #{request.env['utm_medium']}, ...."
+        else
+          "We're glad you found us on your own!"
+        end
 
-## Contributing
+        render :text => str
+      end
+    end
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/ihatov08/rack_utm. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
-## License
+Customization
+-------------
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+By default cookie is set for 30 days, you can extend time to live with <code>:ttl</code> option (default is 30 days).
 
-## Code of Conduct
+    #Rails 3+ in config/application.rb
+    class Application < Rails::Application
+      ...
+      config.middleware.use Rack::Utm, { cookie_time_to_live: 60*60*24*30 }
+      ...
+    end
 
-Everyone interacting in the RackUtm project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/ihatov08/rack_utm/blob/master/CODE_OF_CONDUCT.md).
+The <code>:domain</code> option allows to customize cookie domain.
+
+    #Rails 3+ in config/application.rb
+    class Application < Rails::Application
+      ...
+      config.middleware.use Rack::Utm, cookie_domain: '.example.org'
+      ...
+    end
+
+By default required parameters are `utm_source, utm_medium, utm_campaign, utm_content, utm_term`.
+The <code>:required_parameters</code> option change required parameters.
+
+    #Rails 3+ in config/application.rb
+    class Application < Rails::Application
+      ...
+      config.middleware.use Rack::Utm, required_parameters: %w[utm_source]
+      ...
+    end
+
+If you want to tracking optional parameters(not required), please use <code>optional_parameters</code> option.
+
+    #Rails 3+ in config/application.rb
+    class Application < Rails::Application
+      ...
+      config.middleware.use Rack::Utm, optional_parameters: %w[optional_param]
+      ...
+    end
+
+Middleware will set cookie on <code>.example.org</code> so it's accessible on <code>www.example.org</code>, <code>app.example.org</code> etc.
+
+The <code>:overwrite</code> option allows to set whether to overwrite the existing utm tag(`required_parameters`) previously stored in cookies. By default it is set to `true`.
+
+Credits
+=======
+
+Thanks goes to Rack::Affiliates (https://github.com/alexlevin/rack-affiliates) for the inspiration.

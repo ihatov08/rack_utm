@@ -110,7 +110,7 @@ module Rack
             value: value,
             expires: expires,
             domain: cookie_domain,
-            cookie_path: cookie_path
+            path: cookie_path
           }
 
         Rack::Utils.set_cookie_header!(headers, key, cookie)

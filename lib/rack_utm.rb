@@ -118,7 +118,7 @@ module Rack
             path: cookie_path
           }
 
-        Rack::Utils.set_cookie_header!(headers, key, cookie)
+        Rack::Utils.delete_cookie_header!(headers, key, cookie)
       end
     end
 

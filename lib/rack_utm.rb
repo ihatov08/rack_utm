@@ -22,11 +22,8 @@ module Rack
       set_env(env)
 
       status, headers, body = app.call(env)
-      if set_cookies?
-        set_cookies(headers)
-      else
-        delete_cookies(headers)
-      end
+
+      set_cookies(headers)
 
       [status, headers, body]
     end
@@ -123,6 +120,7 @@ module Rack
     end
 
     def set_cookies(headers)
+      return unless set_cookies?
       values.each do |key, value|
         cookie =
           {

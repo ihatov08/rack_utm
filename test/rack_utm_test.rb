@@ -175,6 +175,142 @@ class RackUtmTest < Minitest::Test
     assert_equal 'http://hoge.com', last_request.env['utm_from']
   end
 
+  def test_should_overwite
+    @options = { allow_overwrite: true }
+
+    overwrite_values =
+      {
+        'utm_source' => 'yahoo',
+        'utm_medium' => 'overwite_medium',
+        'utm_term' => 'overwite_term',
+        'utm_content' => 'overwrite_content',
+        'utm_campaign' => 'overwite_campaign'
+      }
+
+    day = 60*60*24
+    @time = Time.now
+    clear_cookies
+    query_strings.each { |key, value| set_cookie("#{key}=#{value}") }
+    set_cookie("utm_from=http://example.com")
+    set_cookie("utm_time=#{@time.to_i}")
+    Timecop.freeze do
+      @time = Time.now
+      get '/', query_strings.merge(overwrite_values), 'HTTP_REFERER' => 'http://example.com'
+    end
+
+    overwrite_values.each do |key,value|
+      assert_equal rack_mock_session.cookie_jar[key], value
+    end
+  end
+
+  def test_should_not_overwite
+    @options = { allow_overwrite: false }
+
+    overwrite_values =
+      {
+        'utm_source' => 'yahoo',
+        'utm_medium' => 'overwite_medium',
+        'utm_term' => 'overwite_term',
+        'utm_content' => 'overwrite_content',
+        'utm_campaign' => 'overwite_campaign'
+      }
+
+    day = 60*60*24
+    @time = Time.now
+    clear_cookies
+    query_strings.each { |key, value| set_cookie("#{key}=#{value}") }
+    set_cookie("utm_from=http://example.com")
+    set_cookie("utm_time=#{@time.to_i}")
+    Timecop.freeze do
+      @time = Time.now
+      get '/', query_strings.merge(overwrite_values), 'HTTP_REFERER' => 'http://example.com'
+    end
+
+    query_strings.each do |key,value|
+      assert_equal value, rack_mock_session.cookie_jar[key]
+    end
+  end
+
+  def test_should_clear_cookies_when_miss_any_one_of_parameters
+    overwrite_values =
+      {
+        'utm_source' => 'yahoo',
+        # 'utm_medium' => 'overwite_medium',
+        'utm_term' => 'overwite_term',
+        'utm_content' => 'overwrite_content',
+        'utm_campaign' => 'overwite_campaign'
+      }
+
+    day = 60*60*24
+    @time = Time.now
+    clear_cookies
+    query_strings.each { |key, value| set_cookie("#{key}=#{value}") }
+    set_cookie("utm_from=http://example.com")
+    set_cookie("utm_time=#{@time.to_i}")
+    Timecop.freeze do
+      @time = Time.now
+      query =
+        query_strings
+          .slice('utm_source', 'utm_term', 'utm_content', 'utm_campaign')
+          .merge(overwrite_values)
+
+      get '/', query, 'HTTP_REFERER' => 'http://example.com'
+    end
+
+    query_strings.each_key do |key|
+      assert_equal '', rack_mock_session.cookie_jar[key]
+    end
+  end
+
+  def test_should_clear_cookies_when_miss_any_one_of_parameters_and_same_domain
+    overwrite_values =
+      {
+        'utm_source' => 'yahoo',
+        # 'utm_medium' => 'overwite_medium',
+        'utm_term' => 'overwite_term',
+        'utm_content' => 'overwrite_content',
+        'utm_campaign' => 'overwite_campaign'
+      }
+
+    day = 60*60*24
+    @time = Time.now
+    clear_cookies
+    query_strings.each { |key, value| set_cookie("#{key}=#{value}") }
+    set_cookie("utm_from=http://example.com")
+    set_cookie("utm_time=#{@time.to_i}")
+    Timecop.freeze do
+      @time = Time.now
+      query =
+        query_strings
+          .slice('utm_source', 'utm_term', 'utm_content', 'utm_campaign')
+          .merge(overwrite_values)
+
+      get '/', query
+    end
+
+    query_strings.each_key do |key|
+      assert_equal '', rack_mock_session.cookie_jar[key]
+    end
+  end
+
+  def test_should_set_cookies_when_not_include_utm_parameters
+    day = 60*60*24
+    @time = Time.now
+    clear_cookies
+    query_strings.each { |key, value| set_cookie("#{key}=#{value}") }
+    set_cookie("utm_from=http://example.com")
+    set_cookie("utm_time=#{@time.to_i}")
+    Timecop.freeze do
+      @time = Time.now
+
+      get '/'
+    end
+
+    query_strings.each do |key, value|
+      assert_equal value, rack_mock_session.cookie_jar[key]
+    end
+  end
+
   private
 
   def query_strings

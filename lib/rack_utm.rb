@@ -22,8 +22,11 @@ module Rack
       set_env(env)
 
       status, headers, body = app.call(env)
-
-      set_cookies(headers)
+      if set_cookies?
+        set_cookies(headers)
+      else
+        delete_cookies(headers)
+      end
 
       [status, headers, body]
     end
@@ -40,6 +43,10 @@ module Rack
                 :req,
                 :optional_parameters
 
+    def all_parameter_names
+      required_parameters.concat(optional_parameters)
+    end
+
     def params
       req.params
     end
@@ -54,20 +61,20 @@ module Rack
 
     def set_params_for_env?
       return false unless !required_param_values.compact.empty?
-      return false unless required_param_values != required_cookie_values
 
       true
     end
 
-    def set_env_values
-      return newer_parameters if set_params_for_env?
-      return cookies if set_cookies_for_env?
+    def values
+      values = []
+      values = cookies if set_cookies_for_env?
+      values = newer_parameters if set_params_for_env? && allow_overwrite
 
-      []
+      values
     end
 
     def set_env(env)
-      set_env_values.each { |key, value| env["#{key}"] = value }
+      values.each { |key, value| env["#{key}"] = value }
     end
 
     def required_param_values
@@ -88,7 +95,7 @@ module Rack
     end
 
     def set_cookies?
-      return false unless required_param_values.all?
+      return false unless values.values_at(*required_parameters).all?
       required_param_values != required_cookie_values
     end
 
@@ -101,10 +108,22 @@ module Rack
         )
     end
 
-    def set_cookies(headers)
-      return unless set_cookies?
+    def delete_cookies(headers)
+      cookies.each_key do |key|
+        cookie =
+          {
+            value: nil,
+            expires: expires,
+            domain: cookie_domain,
+            path: cookie_path
+          }
 
-      newer_parameters.each do |key, value|
+        Rack::Utils.set_cookie_header!(headers, key, cookie)
+      end
+    end
+
+    def set_cookies(headers)
+      values.each do |key, value|
         cookie =
           {
             value: value,

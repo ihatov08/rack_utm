@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rack_utm (0.1.0)
+    rack_utm (0.1.2)
 
 GEM
   remote: https://rubygems.org/

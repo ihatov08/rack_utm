@@ -241,7 +241,6 @@ class RackUtmTest < Minitest::Test
         'utm_campaign' => 'overwite_campaign'
       }
 
-    day = 60*60*24
     @time = Time.now
     clear_cookies
     query_strings.each { |key, value| set_cookie("#{key}=#{value}") }
@@ -272,7 +271,6 @@ class RackUtmTest < Minitest::Test
         'utm_campaign' => 'overwite_campaign'
       }
 
-    day = 60*60*24
     @time = Time.now
     clear_cookies
     query_strings.each { |key, value| set_cookie("#{key}=#{value}") }

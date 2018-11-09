@@ -25,6 +25,8 @@ module Rack
 
       set_cookies(headers)
 
+      delete_cookies(headers)
+
       [status, headers, body]
     end
 
@@ -106,21 +108,24 @@ module Rack
     end
 
     def delete_cookies(headers)
-      cookies.each_key do |key|
-        cookie =
-          {
-            value: nil,
-            expires: expires,
-            domain: cookie_domain,
-            path: cookie_path
-          }
+      if required_param_values.any? && !required_param_values.all?
+        cookies.each_key do |key|
+          cookie =
+            {
+              value: nil,
+              expires: expires,
+              domain: cookie_domain,
+              path: cookie_path
+            }
 
-        Rack::Utils.delete_cookie_header!(headers, key, cookie)
+          Rack::Utils.delete_cookie_header!(headers, key, cookie)
+        end
       end
     end
 
     def set_cookies(headers)
       return unless set_cookies?
+
       values.each do |key, value|
         cookie =
           {
